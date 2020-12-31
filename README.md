@@ -1,3 +1,3 @@
-# Python-scripts
+# Python-scripts - Fiscomp2 
 
-Aqui colocarei todos meus scripts feito ao longo da graduação em bacharelado de física da USP
+Segue todos meus scripts feitos na matéria sobre física computacional 2 pelo IFUSP.
