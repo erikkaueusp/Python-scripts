@@ -1,0 +1,79 @@
+from numpy import array, empty
+import matplotlib.pyplot as plt
+
+G, M, m = 6.67380e-11, 1.9891e30, 5.9722e24 
+GM = G*M
+GMm = GM*m
+
+
+r_a = array([-1.4710e11, 0, 0,-3.0287e4],float)
+t = 0.0       # Início do intervalo de integração
+b = 365*24*3600       # Final do intervalo de integração
+prec = 1000./(365*24*3600)   # Precisão requerida para o cálculo
+H= 7*24*3600       # Tamanho do passo de integração
+
+
+def f(r,t):
+    x, vx, y, vy = r[0], r[1], r[2], r[3]
+    GMr3 = GM/(x**2+y**2)**1.5
+    f0, f1, f2, f3 = vx, -GMr3*x, vy, -GMr3*y
+    return array([f0,f1,f2,f3],float)
+    
+def passo_mbs(f,r,t,H,prec): # Calcula um passo no método de Bulirsch-Stoer
+    # Inicializamos com um passo do método do ponto médio modificado
+    # A matriz R1 armazena a primeira linha da tabela de extrapolação.
+    # Por agora, essa linha contém apenas a estimativa do método do
+    # ponto médio modificado para a solução no final do intervalo.
+    n = 1
+    y = r + 0.5*H*f(r,t)
+    x = r + H*f(y,t+0.5*H)
+    R1 = empty([1,r.shape[0]],float)
+    R1[0] = 0.5*(y + x + 0.5*H*f(x,t+H))
+    # Agora fazemos um laço aumentando o valor de n até que a precisão
+    # seja atingida.
+    erro = 2*H*prec # Garantindo que o laço seja executado ao menos 1 vez
+    while erro > H*prec:
+        n += 1
+        h = H/n
+        # Método do ponto médio modificado
+        y = r + 0.5*h*f(r,t)
+        x = r + h*f(y,t+0.5*h)
+        for i in range(n-1):
+            y += h*f(x,t+(i+1.0)*h)
+            x += h*f(y,t+(i+1.5)*h)
+        # Calculando as estimativas por extrapolação.
+        # As matrizes R1 e R2 armazenam a penúltima e a última
+        # linhas mais recentes da tabela
+        R2 = empty([n,r.shape[0]],float)
+        R2[0] = 0.5*(y + x + 0.5*h*f(x,t+h))
+        for m in range(1,n):
+            epsilon = (R2[m-1]-R1[m-1])/((n/(n-1))**(2*m)-1)
+            R2[m] = R2[m-1] + epsilon
+        erro = abs(epsilon[0])
+        R1 = R2
+    # Fazemos r igual à estimativa mais precisa de que dispomos
+    r = R2[n-1]
+    #print("t=",t," n='",n) # Imprime o tempo e o n para convergência
+    return r        # Retornamos o NOVO VALOR de r
+    
+    
+x_lista = []
+y_lista = []
+t_lista = []
+t = 0
+
+while t<= b:   # Realizando a integração numérica
+    t_lista.append(t)
+    x_lista.append(r_a[0])
+    y_lista.append(r_a[2])
+    r_a = passo_mbs(f,r_a,t,H,prec)
+    t += H
+
+
+
+
+plt.title("Bulirsch-Stoer adaptativo")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.plot(x_lista,y_lista,"b.")
+plt.show()
